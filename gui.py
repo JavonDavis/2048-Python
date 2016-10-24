@@ -1,6 +1,8 @@
 import Tkinter as tk
-from PIL import Image, ImageTk
+from helpers import find_number, random_number
 from random import randint, choice, shuffle
+
+controls = ["<Right>","<Left>","<Up>","<Down>"]
 
 UP = 1
 DOWN = 2
@@ -74,12 +76,12 @@ class GameBoard(tk.Frame):
     def animate_move_number(self, key, dx, dy, direction=None):
         """Animate the movement of a number from one slot to another"""
         transition_value = 5
-        transition_value_neg = -1 * transition_value
 
         def helper_horizontal(transition, distance):
             if distance < abs(transition):
                 self.canvas.move(key, distance * (transition / abs(transition)), 0)
                 self.canvas.update()
+                self.merge(key)
             else:
                 self.canvas.move(key, transition, 0)
                 self.canvas.update()
@@ -89,6 +91,7 @@ class GameBoard(tk.Frame):
             if distance < abs(transition):
                 self.canvas.move(key, 0, distance * (transition / abs(transition)))
                 self.canvas.update()
+                self.merge(key)
             else:
                 self.canvas.move(key, 0, transition)
                 self.canvas.update()
@@ -99,11 +102,26 @@ class GameBoard(tk.Frame):
         elif direction == DOWN:
             return helper_vertical(transition_value, dy)
         elif direction == LEFT:
-            return helper_horizontal(transition_value_neg, dx)
+            return helper_horizontal(-1 * transition_value, dx)
         elif direction == UP:
-            return helper_vertical(transition_value_neg, dy)
+            return helper_vertical(-1 * transition_value, dy)
         else:
             return Exception("Invalid direction")
+
+    def remove_number(self, key):
+        self.canvas.delete(key)
+
+    def merge(self, key):
+        grid_row, grid_column = self.numbers[key]
+        for k,v in self.numbers.iteritems():
+            if k != key and v == (grid_row, grid_column):
+                self.numbers.pop(k)
+                num = grid[grid_row][grid_column]
+                number = find_number(num)
+                self.remove_number(k)
+                self.remove_number(key)
+                return self.add_number(key, number, grid_row, grid_column)
+        return False
 
     def refresh(self, event):
         """Redraw the board, possibly in response to window being resized"""
@@ -129,33 +147,6 @@ class GameBoard(tk.Frame):
             self.place_number(key, self.numbers[key][0], self.numbers[key][1])
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
-
-
-class Numbers:
-    def __init__(self):
-        image2 = Image.open("img/img_2.jpg")
-        image4 = Image.open("img/img_4.jpg")
-        image8 = Image.open("img/img_8.jpg")
-        image16 = Image.open("img/img_16.jpg")
-
-        self.number_2 = Number(ImageTk.PhotoImage(image2), 2)
-        self.number_4 = Number(ImageTk.PhotoImage(image4), 4)
-        self.number_8 = Number(ImageTk.PhotoImage(image8), 8)
-        self.number_16 = Number(ImageTk.PhotoImage(image16), 16)
-        self.numbers = {"2": self.number_2, "4": self.number_4, "8": self.number_8, "16": self.number_16}
-
-    def number(self, num):
-        return self.numbers[num]
-
-    def random_number(self):
-        number_choices = ['2'] * 95 + ['4'] * 5
-        return self.number_2 if choice(number_choices) == '2' else self.number_4
-
-
-class Number:
-    def __init__(self, image, value):
-        self.image = image
-        self.value = value
 
 
 def test(event):
@@ -195,7 +186,7 @@ def update_grid(grid_row, grid_column, direction):
         grid[new_grid_row][new_grid_column] = num1
         grid[grid_row][grid_column] = 0
         return new_grid_row, new_grid_column
-    elif grid[new_grid_row][new_grid_column] == grid[new_grid_row][new_grid_column]:
+    elif grid[new_grid_row][new_grid_column] == grid[grid_row][grid_column]:
         grid[new_grid_row][new_grid_column] = num1*2
         grid[grid_row][grid_column] = 0
         return new_grid_row, new_grid_column
@@ -260,27 +251,39 @@ def move(key, direction):
         move(key, direction)
 
 
+def keyboard_callback(event, frame, game_board):
+    unbind(frame)
+    move_all(event)
+    add_random_number(game_board)
+    bind(frame, game_board)
+
+
+def bind(frame, game_board):
+    map(lambda x: frame.bind(x, lambda event: keyboard_callback(event, frame, game_board)), controls)
+
+
+def unbind(frame):
+    map(lambda x: frame.unbind("<Right>"), controls)
+
+
+def add_random_number(game_board):
+    global number_count
+    number_count += 1
+    grid_row, grid_column = random_position()
+    game_board.add_number("Count {}".format(number_count), random_number(), grid_row, grid_column)
+    print grid
+
 if __name__ == "__main__":
     root = tk.Tk()
     board = GameBoard(root)
-
-    numbers = Numbers()
 
     number_count = 0
 
     board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
 
-    row, column = random_position()
-    board.add_number("Count {}".format(number_count), numbers.random_number(), row, column)
+    add_random_number(board)
+    add_random_number(board)
 
-    number_count += 1
-    row, column = random_position()
-    board.add_number("Count {}".format(number_count), numbers.random_number(), row, column)
-    print grid
-
-    root.bind("<Right>", move_all)
-    root.bind("<Left>", move_all)
-    root.bind("<Up>", move_all)
-    root.bind("<Down>", move_all)
+    bind(root, board)
     root.resizable(width=False, height=False)
     root.mainloop()
