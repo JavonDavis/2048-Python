@@ -2,8 +2,6 @@ import Tkinter as tk
 from PIL import Image, ImageTk
 from random import randint, choice, shuffle
 
-numbers = {}
-
 UP = 1
 DOWN = 2
 RIGHT = 3
@@ -69,6 +67,9 @@ class GameBoard(tk.Frame):
             dy = abs(y0 - y1)
 
             self.animate_move_number(key, dx, dy, direction)
+            return True
+        else:
+            return False
 
     def animate_move_number(self, key, dx, dy, direction=None):
         """Animate the movement of a number from one slot to another"""
@@ -81,9 +82,8 @@ class GameBoard(tk.Frame):
                 self.canvas.update()
             else:
                 self.canvas.move(key, transition, 0)
-                distance -= abs(transition)
                 self.canvas.update()
-                self.after(100, helper_horizontal(transition, distance))
+                return helper_horizontal(transition, distance - abs(transition))
 
         def helper_vertical(transition, distance):
             if distance < abs(transition):
@@ -91,16 +91,15 @@ class GameBoard(tk.Frame):
                 self.canvas.update()
             else:
                 self.canvas.move(key, 0, transition)
-                distance -= abs(transition)
                 self.canvas.update()
-                return helper_vertical(transition, distance)
+                return helper_vertical(transition, distance - abs(transition))
 
         if direction == RIGHT:
-            helper_horizontal(transition_value, dx)
+            return helper_horizontal(transition_value, dx)
         elif direction == DOWN:
             return helper_vertical(transition_value, dy)
         elif direction == LEFT:
-            helper_horizontal(transition_value_neg, dx)
+            return helper_horizontal(transition_value_neg, dx)
         elif direction == UP:
             return helper_vertical(transition_value_neg, dy)
         else:
@@ -169,8 +168,8 @@ def move_right():
 
 def empty_slots():
     slots = []
-    for i in range(0, 4):
-        for j in range(0, 4):
+    for i in xrange(0, 4):
+        for j in xrange(0, 4):
             if grid[i][j] == 0:
                 slots.append((i, j))
     return slots
@@ -196,20 +195,69 @@ def update_grid(grid_row, grid_column, direction):
         grid[new_grid_row][new_grid_column] = num1
         grid[grid_row][grid_column] = 0
         return new_grid_row, new_grid_column
+    elif grid[new_grid_row][new_grid_column] == grid[new_grid_row][new_grid_column]:
+        grid[new_grid_row][new_grid_column] = num1*2
+        grid[grid_row][grid_column] = 0
+        return new_grid_row, new_grid_column
 
     return grid_row, grid_column
 
 
 def find_key(board, grid_row, grid_column):
-    for key,value in board.numbers:
+    for key, value in board.numbers.iteritems():
         if value[0] == grid_row and value[1] == grid_column:
             return key
     return None
 
 
-def move(event, key):
-    board.move_number(key, directions[event.keysym])
+def move_all(event):
+    direction = directions[event.keysym]
+    if direction == UP:
+        move_all_up()
+    elif direction == DOWN:
+        move_all_down()
+    elif direction == RIGHT:
+        move_all_right()
+    elif direction == LEFT:
+        move_all_left()
+
+
+def move_all_up():
+    for i in xrange(0, 4):
+        for j in xrange(0, 4):
+            key = find_key(board, i, j)
+            if key is not None:
+                move(key, UP)
+
+
+def move_all_down():
+    for i in xrange(3, -1, -1):
+        for j in xrange(0, 4):
+            key = find_key(board, i, j)
+            if key is not None:
+                move(key, DOWN)
+
+
+def move_all_left():
+    for i in xrange(0, 4):
+        for j in xrange(0, 4):
+            key = find_key(board, i, j)
+            if key is not None:
+                move(key, LEFT)
+
+
+def move_all_right():
+    for j in xrange(3, -1, -1):
+        for i in xrange(0, 4):
+            key = find_key(board, i, j)
+            if key is not None:
+                move(key, RIGHT)
+
+
+def move(key, direction):
     print grid
+    if board.move_number(key, direction):
+        move(key, direction)
 
 
 if __name__ == "__main__":
@@ -230,9 +278,9 @@ if __name__ == "__main__":
     board.add_number("Count {}".format(number_count), numbers.random_number(), row, column)
     print grid
 
-    root.bind("<Right>", move)
-    root.bind("<Left>", move)
-    root.bind("<Up>", move)
-    root.bind("<Down>", move)
+    root.bind("<Right>", move_all)
+    root.bind("<Left>", move_all)
+    root.bind("<Up>", move_all)
+    root.bind("<Down>", move_all)
     root.resizable(width=False, height=False)
     root.mainloop()
