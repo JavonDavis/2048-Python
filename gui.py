@@ -1,6 +1,7 @@
 import Tkinter as tk
 from helpers import find_number, random_number
-from random import randint, choice, shuffle
+from random import choice
+from copy import deepcopy
 
 controls = ["<Right>","<Left>","<Up>","<Down>"]
 
@@ -33,7 +34,7 @@ class GameBoard(tk.Frame):
         self.canvas.pack(side="top", fill="both", expand=True, padx=2, pady=2)
 
         self.score_text = self.canvas.create_text(100, rows * size + 50, text=("Score:", self.score), font=(
-            "Comic Sans", 24))  # This is the first appereance of the score on screen, or the first creation.
+            "Comic Sans", 24))  # This is the first appearance of the score on screen, or the first creation.
 
         # this binding will cause a refresh if the user interactively
         # changes the window size
@@ -45,6 +46,7 @@ class GameBoard(tk.Frame):
         self.canvas.create_image(0, 0, image=number.image, tags=(name, "piece"), anchor="c")
         grid[row][column] = number.value
         self.place_number(name, row, column)
+        return True
 
     def place_number(self, key, row, column):
         """Place a number at the given row/column"""
@@ -68,8 +70,7 @@ class GameBoard(tk.Frame):
             dx = abs(x0 - x1)
             dy = abs(y0 - y1)
 
-            self.animate_move_number(key, dx, dy, direction)
-            return True
+            return self.animate_move_number(key, dx, dy, direction)
         else:
             return False
 
@@ -81,7 +82,9 @@ class GameBoard(tk.Frame):
             if distance < abs(transition):
                 self.canvas.move(key, distance * (transition / abs(transition)), 0)
                 self.canvas.update()
-                self.merge(key)
+                if self.merge(key):
+                    return False
+                return True
             else:
                 self.canvas.move(key, transition, 0)
                 self.canvas.update()
@@ -91,7 +94,9 @@ class GameBoard(tk.Frame):
             if distance < abs(transition):
                 self.canvas.move(key, 0, distance * (transition / abs(transition)))
                 self.canvas.update()
-                self.merge(key)
+                if self.merge(key):
+                    return False
+                return True
             else:
                 self.canvas.move(key, 0, transition)
                 self.canvas.update()
@@ -120,8 +125,13 @@ class GameBoard(tk.Frame):
                 number = find_number(num)
                 self.remove_number(k)
                 self.remove_number(key)
+                self.score += number.value
+                self.update_score()
                 return self.add_number(key, number, grid_row, grid_column)
         return False
+
+    def update_score(self):
+        self.canvas.itemconfig(self.score_text, text=("Score:", self.score))
 
     def refresh(self, event):
         """Redraw the board, possibly in response to window being resized"""
@@ -129,13 +139,8 @@ class GameBoard(tk.Frame):
         ysize = int((event.height - 1) / self.rows)
         self.size = min(xsize, ysize)
         self.canvas.delete("square")
-        self.score += 10492
-        self.canvas.itemconfig(self.score_text, text=("Score:", self.score))
-        # self.number = self.canvas.create_text(5, 5, text=2, font=(
-        #     "Comic Sans", 36), anchor="nw")
-        # r = self.canvas.create_rectangle(self.canvas.bbox(self.number), fill="white")
-        # self.canvas.move(r, 200, 200)
-        # self.canvas.tag_lower(r, self.number)
+        self.update_score()
+
         for row in range(self.rows):
             for col in range(self.columns):
                 x1 = (col * self.size) + 5
@@ -147,14 +152,6 @@ class GameBoard(tk.Frame):
             self.place_number(key, self.numbers[key][0], self.numbers[key][1])
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
-
-
-def test(event):
-    print event.keysym
-
-
-def move_right():
-    pass
 
 
 def empty_slots():
@@ -253,8 +250,14 @@ def move(key, direction):
 
 def keyboard_callback(event, frame, game_board):
     unbind(frame)
+
+    current_state = deepcopy(grid)
     move_all(event)
-    add_random_number(game_board)
+
+    new_state = deepcopy(grid)
+    if current_state != new_state:
+        add_random_number(game_board)
+
     bind(frame, game_board)
 
 
@@ -263,7 +266,7 @@ def bind(frame, game_board):
 
 
 def unbind(frame):
-    map(lambda x: frame.unbind("<Right>"), controls)
+    map(lambda x: frame.unbind(x), controls)
 
 
 def add_random_number(game_board):
