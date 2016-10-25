@@ -3,12 +3,14 @@ from helpers import find_number, random_number
 from random import choice
 from copy import deepcopy
 
-controls = ["<Right>","<Left>","<Up>","<Down>"]
+controls = ["<Right>", "<Left>", "<Up>", "<Down>"]
 
 UP = 1
 DOWN = 2
 RIGHT = 3
 LEFT = 4
+
+transition_value = 20
 
 directions = {"Right": 3, "Up": 1, "Left": 4, "Down": 2}
 grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
@@ -36,24 +38,18 @@ class GameBoard(tk.Frame):
         self.score_text = self.canvas.create_text(100, rows * size + 50, text=("Score:", self.score), font=(
             "Comic Sans", 24))  # This is the first appearance of the score on screen, or the first creation.
 
-        # this binding will cause a refresh if the user interactively
-        # changes the window size
         self.canvas.bind("<Configure>", self.refresh)
 
-    def add_number(self, name, number, row=0, column=0):
-        """Add a number to the playing board"""
+    def put(self, key, number, row=0, column=0):
+        """Place a number to the playing board"""
         global grid
-        self.canvas.create_image(0, 0, image=number.image, tags=(name, "piece"), anchor="c")
+        self.canvas.create_image(0, 0, image=number.image, tags=(key, "piece"), anchor="c")
         grid[row][column] = number.value
-        self.place_number(name, row, column)
-        return True
-
-    def place_number(self, key, row, column):
-        """Place a number at the given row/column"""
         self.numbers[key] = (row, column)
         x0 = (column * self.size + 5) + int(self.size / 2)
         y0 = (row * self.size + 5) + int(self.size / 2)
         self.canvas.coords(key, x0, y0)
+        return True
 
     def move_number(self, key, direction):
         """Move a number to a given row column"""
@@ -70,71 +66,18 @@ class GameBoard(tk.Frame):
             dx = abs(x0 - x1)
             dy = abs(y0 - y1)
 
-            return self.animate_move_number(key, dx, dy, direction)
+            return animate_move_number(self, key, dx, dy, direction)
         else:
             return False
 
-    def animate_move_number(self, key, dx, dy, direction=None):
-        """Animate the movement of a number from one slot to another"""
-        transition_value = 5
-
-        def helper_horizontal(transition, distance):
-            if distance < abs(transition):
-                self.canvas.move(key, distance * (transition / abs(transition)), 0)
-                self.canvas.update()
-                if self.merge(key):
-                    return False
-                return True
-            else:
-                self.canvas.move(key, transition, 0)
-                self.canvas.update()
-                return helper_horizontal(transition, distance - abs(transition))
-
-        def helper_vertical(transition, distance):
-            if distance < abs(transition):
-                self.canvas.move(key, 0, distance * (transition / abs(transition)))
-                self.canvas.update()
-                if self.merge(key):
-                    return False
-                return True
-            else:
-                self.canvas.move(key, 0, transition)
-                self.canvas.update()
-                return helper_vertical(transition, distance - abs(transition))
-
-        if direction == RIGHT:
-            return helper_horizontal(transition_value, dx)
-        elif direction == DOWN:
-            return helper_vertical(transition_value, dy)
-        elif direction == LEFT:
-            return helper_horizontal(-1 * transition_value, dx)
-        elif direction == UP:
-            return helper_vertical(-1 * transition_value, dy)
-        else:
-            return Exception("Invalid direction")
-
     def remove_number(self, key):
         self.canvas.delete(key)
-
-    def merge(self, key):
-        grid_row, grid_column = self.numbers[key]
-        for k,v in self.numbers.iteritems():
-            if k != key and v == (grid_row, grid_column):
-                self.numbers.pop(k)
-                num = grid[grid_row][grid_column]
-                number = find_number(num)
-                self.remove_number(k)
-                self.remove_number(key)
-                self.score += number.value
-                self.update_score()
-                return self.add_number(key, number, grid_row, grid_column)
-        return False
 
     def update_score(self):
         self.canvas.itemconfig(self.score_text, text=("Score:", self.score))
 
     def refresh(self, event):
-        """Redraw the board, possibly in response to window being resized"""
+        """Draw the board"""
         xsize = int((event.width - 1) / self.columns)
         ysize = int((event.height - 1) / self.rows)
         self.size = min(xsize, ysize)
@@ -149,9 +92,47 @@ class GameBoard(tk.Frame):
                 y2 = y1 + self.size - 5
                 self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=self.color, tags="square")
         for key in self.numbers:
-            self.place_number(key, self.numbers[key][0], self.numbers[key][1])
-        self.canvas.tag_raise("piece")
+            row, column = self.numbers[key][0], self.numbers[key][1]
+            self.numbers[key] = (row, column)
+            x0 = (column * self.size + 5) + int(self.size / 2)
+            y0 = (row * self.size + 5) + int(self.size / 2)
+            self.canvas.coords(key, x0, y0)
         self.canvas.tag_lower("square")
+
+
+def animate_move_number(game_board, key, dx, dy, direction=None):
+    """Animate the movement of a number from one slot to another"""
+
+    def helper_horizontal(transition, distance):
+        if distance < abs(transition):
+            move_piece(game_board.canvas, key, transition, 0)
+            if merge(game_board, key):
+                return False
+            return True
+        else:
+            move_piece(game_board.canvas, key, transition, 0)
+            return helper_horizontal(transition, distance - abs(transition))
+
+    def helper_vertical(transition, distance):
+        if distance < abs(transition):
+            move_piece(game_board.canvas, key, 0, transition)
+            if merge(game_board, key):
+                return False
+            return True
+        else:
+            move_piece(game_board.canvas, key, 0, transition)
+            return helper_vertical(transition, distance - abs(transition))
+
+    if direction == RIGHT:
+        return helper_horizontal(transition_value, dx)
+    elif direction == DOWN:
+        return helper_vertical(transition_value, dy)
+    elif direction == LEFT:
+        return helper_horizontal(-1 * transition_value, dx)
+    elif direction == UP:
+        return helper_vertical(-1 * transition_value, dy)
+    else:
+        return Exception("Invalid direction")
 
 
 def empty_slots():
@@ -163,8 +144,28 @@ def empty_slots():
     return slots
 
 
+def move_piece(board, key, left, right):
+    board.move(key, left, right)
+    board.update()
+
+
 def random_position():
     return choice(empty_slots())
+
+
+def merge(game_board, key):
+    grid_row, grid_column = game_board.numbers[key]
+    for k, v in game_board.numbers.iteritems():
+        if k != key and v == (grid_row, grid_column):
+            game_board.numbers.pop(k)
+            num = grid[grid_row][grid_column]
+            number = find_number(num)
+            game_board.remove_number(k)
+            game_board.remove_number(key)
+            game_board.score += number.value
+            game_board.update_score()
+            return game_board.put(key, number, grid_row, grid_column)
+    return False
 
 
 def update_grid(grid_row, grid_column, direction):
@@ -184,75 +185,75 @@ def update_grid(grid_row, grid_column, direction):
         grid[grid_row][grid_column] = 0
         return new_grid_row, new_grid_column
     elif grid[new_grid_row][new_grid_column] == grid[grid_row][grid_column]:
-        grid[new_grid_row][new_grid_column] = num1*2
+        grid[new_grid_row][new_grid_column] = num1 * 2
         grid[grid_row][grid_column] = 0
         return new_grid_row, new_grid_column
 
     return grid_row, grid_column
 
 
-def find_key(board, grid_row, grid_column):
-    for key, value in board.numbers.iteritems():
+def find_key(game_board, grid_row, grid_column):
+    for key, value in game_board.numbers.iteritems():
         if value[0] == grid_row and value[1] == grid_column:
             return key
     return None
 
 
-def move_all(event):
+def move_all(event, game_board):
     direction = directions[event.keysym]
     if direction == UP:
-        move_all_up()
+        move_all_up(game_board)
     elif direction == DOWN:
-        move_all_down()
+        move_all_down(game_board)
     elif direction == RIGHT:
-        move_all_right()
+        move_all_right(game_board)
     elif direction == LEFT:
-        move_all_left()
+        move_all_left(game_board)
 
 
-def move_all_up():
+def move_all_up(game_board):
     for i in xrange(0, 4):
         for j in xrange(0, 4):
             key = find_key(board, i, j)
             if key is not None:
-                move(key, UP)
+                move(key, UP, game_board)
 
 
-def move_all_down():
+def move_all_down(game_board):
     for i in xrange(3, -1, -1):
         for j in xrange(0, 4):
             key = find_key(board, i, j)
             if key is not None:
-                move(key, DOWN)
+                move(key, DOWN, game_board)
 
 
-def move_all_left():
+def move_all_left(game_board):
     for i in xrange(0, 4):
         for j in xrange(0, 4):
             key = find_key(board, i, j)
             if key is not None:
-                move(key, LEFT)
+                move(key, LEFT, game_board)
 
 
-def move_all_right():
+def move_all_right(game_board):
     for j in xrange(3, -1, -1):
         for i in xrange(0, 4):
             key = find_key(board, i, j)
             if key is not None:
-                move(key, RIGHT)
+                move(key, RIGHT, game_board)
 
 
-def move(key, direction):
+def move(key, direction, game_board):
     print grid
-    if board.move_number(key, direction):
-        move(key, direction)
+    if game_board.move_number(key, direction):
+        move(key, direction, game_board)
 
 
 def keyboard_callback(event, frame, game_board):
     unbind(frame)
 
     current_state = deepcopy(grid)
-    move_all(event)
+    move_all(event, game_board)
 
     new_state = deepcopy(grid)
     if current_state != new_state:
@@ -273,8 +274,9 @@ def add_random_number(game_board):
     global number_count
     number_count += 1
     grid_row, grid_column = random_position()
-    game_board.add_number("Count {}".format(number_count), random_number(), grid_row, grid_column)
+    game_board.put("Count {}".format(number_count), random_number(), grid_row, grid_column)
     print grid
+
 
 if __name__ == "__main__":
     root = tk.Tk()
