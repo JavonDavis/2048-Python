@@ -1,9 +1,6 @@
-from helpers import find_number, random_number
 from random import choice
 from copy import deepcopy
 import gui
-
-merged_slots = []
 
 controls = ["<Right>", "<Left>", "<Up>", "<Down>"]
 
@@ -16,16 +13,14 @@ grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
 number_count = 0
 transition_value = 20
 
-directions = {"Right": 3, "Up": 1, "Left": 4, "Down": 2}
+directions = {"Right": RIGHT, "Up": UP, "Left": LEFT, "Down": DOWN}
 
 
 def keyboard_callback(event, game_frame, game_board):
-    global merged_slots
     unbind(game_frame)
 
     old_state = deepcopy(grid)
     move_all(event, game_board)
-    merged_slots = []
     new_state = deepcopy(grid)
 
     if old_state != new_state:
@@ -44,23 +39,13 @@ def unbind(game_frame):
 
 
 def add_random_number(game_board):
-    global number_count
+    global number_count, grid
     number_count += 1
     grid_row, grid_column = random_position()
-    put(game_board, "Count {}".format(number_count), random_number(), grid_row, grid_column)
+    number = gui.random_number()
+    grid[grid_row][grid_column] = number.value
+    gui.put(game_board, "Count {}".format(number_count), number, grid_row, grid_column)
     print grid
-
-
-def put(game_board, key, number, row=0, column=0):
-    """Place a number to the playing board"""
-    global grid
-    game_board.canvas.create_image(0, 0, image=number.image, tags=(key, "piece"), anchor="c")
-    grid[row][column] = number.value
-    game_board.numbers[key] = (row, column)
-    x0 = (column * game_board.size + 5) + int(game_board.size / 2)
-    y0 = (row * game_board.size + 5) + int(game_board.size / 2)
-    game_board.canvas.coords(key, x0, y0)
-    return True
 
 
 def move_piece(game_board, key, left, right):
@@ -80,26 +65,6 @@ def move_all(event, game_board):
         move_all_left(game_board)
     else:
         return Exception("Invalid direction")
-
-
-def move_number(game_board, key, direction):
-    """Move a number to a given row column"""
-    grid_row, grid_column = game_board.numbers[key]
-    x1 = (grid_column * game_board.size + 5) + int(game_board.size / 2)
-    y1 = (grid_row * game_board.size + 5) + int(game_board.size / 2)
-
-    new_grid_row, new_grid_column = update_grid(grid_row, grid_column, direction)
-    if new_grid_row != grid_row or new_grid_column != grid_column:
-        game_board.numbers[key] = new_grid_row, new_grid_column
-        x0 = (new_grid_column * game_board.size + 5) + int(game_board.size / 2)
-        y0 = (new_grid_row * game_board.size + 5) + int(game_board.size / 2)
-
-        dx = abs(x0 - x1)
-        dy = abs(y0 - y1)
-
-        return move_by_distance(game_board, key, dx, dy, direction)
-    else:
-        return False
 
 
 def move_by_distance(game_board, key, horizontal_distance, vertical_distance, direction=None):
@@ -137,6 +102,7 @@ def move_by_distance(game_board, key, horizontal_distance, vertical_distance, di
         return Exception("Invalid direction")
 
 
+# Question #1
 def empty_slots():
     slots = []
     for i in xrange(0, 4):
@@ -151,18 +117,19 @@ def random_position():
 
 
 def merge(game_board, key):
+    global grid
     grid_row, grid_column = game_board.numbers[key]
     for k, v in game_board.numbers.iteritems():
         if k != key and v == (grid_row, grid_column):
             game_board.numbers.pop(k)
             num = grid[grid_row][grid_column]
-            number = find_number(num)
-            game_board.remove_number(k)
-            game_board.remove_number(key)
+            number = gui.find_number(num)
+            gui.remove_number(game_board, k)
+            gui.remove_number(game_board, key)
             game_board.score += number.value
-            game_board.update_score()
-            merged_slots.append((grid_row, grid_column))
-            return put(game_board, key, number, grid_row, grid_column)
+            gui.update_score(game_board)
+            grid[grid_row][grid_column] = number.value
+            return gui.put(game_board, key, number, grid_row, grid_column)
     return False
 
 
@@ -182,8 +149,7 @@ def update_grid(grid_row, grid_column, direction):
         grid[new_grid_row][new_grid_column] = num1
         grid[grid_row][grid_column] = 0
         return new_grid_row, new_grid_column
-    elif grid[new_grid_row][new_grid_column] == grid[grid_row][grid_column] \
-            and (grid_row, grid_column) not in merged_slots:
+    elif grid[new_grid_row][new_grid_column] == grid[grid_row][grid_column]:
         grid[new_grid_row][new_grid_column] = num1 * 2
         grid[grid_row][grid_column] = 0
         return new_grid_row, new_grid_column
@@ -232,7 +198,7 @@ def move_all_right(game_board):
 
 def move(key, direction, game_board):
     print grid
-    if move_number(game_board, key, direction):
+    if gui.move_number(game_board, key, direction, update_grid, move_by_distance):
         move(key, direction, game_board)
 
 
