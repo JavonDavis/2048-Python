@@ -1,108 +1,40 @@
-from random import choice
 from copy import deepcopy
+
 import gui
+from random import choice
 
-controls = ["<Right>", "<Left>", "<Up>", "<Down>"]
+"""
+2048 Game
+Please read the comments to help clear up any confusion about what the purpose of the various variables are
 
+Before submitting ensure to edit this comment block to include the ID numbers of both group members
+Group Member:
+Group Member:
+"""
+
+# Give grid the appropriate value
+grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+
+# Values to represent the directions the tiles could move
 UP = 1
 DOWN = 2
 RIGHT = 3
 LEFT = 4
 
-grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
-number_count = 0
-transition_value = 20
-
 directions = {"Right": RIGHT, "Up": UP, "Left": LEFT, "Down": DOWN}
 
+# Used to store the available keyboard controls
+controls = ["<Right>", "<Left>", "<Up>", "<Down>"]
 
-def keyboard_callback(event, game_frame, game_board):
-    unbind(game_frame)
+# use this variable to help keep track of the numbers on the board, remember each number needs a unique ID
+number_count = 0
 
-    old_state = deepcopy(grid)
-    move_all(event, game_board)
-    new_state = deepcopy(grid)
-
-    if old_state != new_state:
-        add_random_number(game_board)
-
-    if not is_game_over(game_board):
-        bind(game_frame, game_board)
+# used to help animate the movement from one tile to another, if functions are implemented correctly increasing
+# this will increase the speed at which the tiles move and decreasing it will also cause the tiles to move slower
+transition_value = 20
 
 
-def bind(game_frame, game_board):
-    map(lambda x: game_frame.bind(x, lambda event: keyboard_callback(event, game_frame, game_board)), controls)
-
-
-def unbind(game_frame):
-    map(lambda x: game_frame.unbind(x), controls)
-
-
-def add_random_number(game_board):
-    global number_count, grid
-    number_count += 1
-    grid_row, grid_column = random_position()
-    number = gui.random_number()
-    grid[grid_row][grid_column] = number.value
-    gui.put(game_board, "Count {}".format(number_count), number, grid_row, grid_column)
-    print grid
-
-
-def move_piece(game_board, key, left, right):
-    game_board.move(key, left, right)
-    game_board.update()
-
-
-def move_all(event, game_board):
-    direction = directions[event.keysym]
-    if direction == UP:
-        move_all_up(game_board)
-    elif direction == DOWN:
-        move_all_down(game_board)
-    elif direction == RIGHT:
-        move_all_right(game_board)
-    elif direction == LEFT:
-        move_all_left(game_board)
-    else:
-        return Exception("Invalid direction")
-
-
-def move_by_distance(game_board, key, horizontal_distance, vertical_distance, direction=None):
-    """Animate the movement of a number from one slot to another"""
-
-    def helper_horizontal(transition, distance):
-        if distance < abs(transition):
-            move_piece(game_board.canvas, key, transition, 0)
-            if merge(game_board, key):
-                return False
-            return True
-        else:
-            move_piece(game_board.canvas, key, transition, 0)
-            return helper_horizontal(transition, distance - abs(transition))
-
-    def helper_vertical(transition, distance):
-        if distance < abs(transition):
-            move_piece(game_board.canvas, key, 0, transition)
-            if merge(game_board, key):
-                return False
-            return True
-        else:
-            move_piece(game_board.canvas, key, 0, transition)
-            return helper_vertical(transition, distance - abs(transition))
-
-    if direction == RIGHT:
-        return helper_horizontal(transition_value, horizontal_distance)
-    elif direction == DOWN:
-        return helper_vertical(transition_value, vertical_distance)
-    elif direction == LEFT:
-        return helper_horizontal(-1 * transition_value, horizontal_distance)
-    elif direction == UP:
-        return helper_vertical(-1 * transition_value, vertical_distance)
-    else:
-        return Exception("Invalid direction")
-
-
-# Question #1
+# Question #2
 def empty_slots():
     slots = []
     for i in xrange(0, 4):
@@ -112,27 +44,32 @@ def empty_slots():
     return slots
 
 
+# Question #3
 def random_position():
     return choice(empty_slots())
 
 
-def merge(game_board, key):
-    global grid
-    grid_row, grid_column = game_board.numbers[key]
-    for k, v in game_board.numbers.iteritems():
-        if k != key and v == (grid_row, grid_column):
-            game_board.numbers.pop(k)
-            num = grid[grid_row][grid_column]
-            number = gui.find_number(num)
-            gui.remove_number(game_board, k)
-            gui.remove_number(game_board, key)
-            game_board.score += number.value
-            gui.update_score(game_board)
-            grid[grid_row][grid_column] = number.value
-            return gui.put(game_board, key, number, grid_row, grid_column)
-    return False
+# Question #4
+def add_random_number(game_board):
+    global number_count
+    number_count += 1
+    grid_row, grid_column = random_position()
+    number = gui.random_number()
+    grid[grid_row][grid_column] = number.value
+    gui.put(game_board, "Count {}".format(number_count), number, grid_row, grid_column)
+    print grid
+    return grid_row, grid_column
 
 
+# Question 5
+def find_identifier(game_board, grid_row, grid_column):
+    for key, value in game_board.numbers.iteritems():
+        if value[0] == grid_row and value[1] == grid_column:
+            return key
+    return None
+
+
+# Question 6
 def update_grid(grid_row, grid_column, direction):
     num1 = grid[grid_row][grid_column]
     if direction == UP and grid_row > 0:
@@ -153,55 +90,172 @@ def update_grid(grid_row, grid_column, direction):
         grid[new_grid_row][new_grid_column] = num1 * 2
         grid[grid_row][grid_column] = 0
         return new_grid_row, new_grid_column
-
     return grid_row, grid_column
 
 
-def find_key(game_board, grid_row, grid_column):
-    for key, value in game_board.numbers.iteritems():
-        if value[0] == grid_row and value[1] == grid_column:
-            return key
-    return None
+# Question 7 - does not include merge in answer
+# def animate_movement(game_board, key, horizontal_distance, vertical_distance, direction=None):
+#     """Animate the movement of a number from one slot to another"""
+#
+#     def helper_horizontal(transition, distance):
+#         if distance < abs(transition):
+#             gui.move_tile(game_board, key, transition, 0)
+#             return True
+#         else:
+#             gui.move_tile(game_board, key, transition, 0)
+#             return helper_horizontal(transition, distance - abs(transition))
+#
+#     def helper_vertical(transition, distance):
+#         if distance < abs(transition):
+#             gui.move_tile(game_board, key, 0, transition)
+#             return True
+#         else:
+#             gui.move_tile(game_board, key, 0, transition)
+#             return helper_vertical(transition, distance - abs(transition))
+#
+#     if direction == RIGHT:
+#         return helper_horizontal(transition_value, horizontal_distance)
+#     elif direction == DOWN:
+#         return helper_vertical(transition_value, vertical_distance)
+#     elif direction == LEFT:
+#         return helper_horizontal(-1 * transition_value, horizontal_distance)
+#     elif direction == UP:
+#         return helper_vertical(-1 * transition_value, vertical_distance)
+#     else:
+#         return Exception("Invalid direction")
 
 
-def move_all_up(game_board):
-    for j in xrange(0, 4):
-        for i in xrange(0, 4):
-            key = find_key(game_board, i, j)
-            if key is not None:
-                move(key, UP, game_board)
+# Question 8
+def move(game_board, key, direction):
+    print grid
+    if gui.move_number(game_board, key, direction, update_grid, animate_movement):
+        move(game_board, key, direction)
 
 
+# Question 9
 def move_all_down(game_board):
     for j in xrange(0, 4):
         for i in xrange(3, -1, -1):
-            key = find_key(game_board, i, j)
+            key = find_identifier(game_board, i, j)
             if key is not None:
-                move(key, DOWN, game_board)
+                move(game_board, key, DOWN)
 
 
+# Question 10
+def move_all_up(game_board):
+    for j in xrange(0, 4):
+        for i in xrange(0, 4):
+            key = find_identifier(game_board, i, j)
+            if key is not None:
+                move(game_board, key, UP)
+
+
+# Question 11
+def move_all_right(game_board):
+    for i in xrange(0, 4):
+        for j in xrange(3, -1, -1):
+            key = find_identifier(game_board, i, j)
+            if key is not None:
+                move(game_board, key, RIGHT)
+
+
+# Question 12
 def move_all_left(game_board):
     for i in xrange(0, 4):
         for j in xrange(0, 4):
-            key = find_key(game_board, i, j)
+            key = find_identifier(game_board, i, j)
             if key is not None:
-                move(key, LEFT, game_board)
+                move(game_board, key, LEFT)
 
 
-def move_all_right(game_board):
-    for j in xrange(3, -1, -1):
-        for i in xrange(0, 4):
-            key = find_key(game_board, i, j)
-            if key is not None:
-                move(key, RIGHT, game_board)
+# Question 13
+def move_all(game_board, event):
+    direction = directions[event.keysym]
+    if direction == UP:
+        move_all_up(game_board)
+    elif direction == DOWN:
+        move_all_down(game_board)
+    elif direction == RIGHT:
+        move_all_right(game_board)
+    elif direction == LEFT:
+        move_all_left(game_board)
+    else:
+        return Exception("Invalid direction")
 
 
-def move(key, direction, game_board):
-    print grid
-    if gui.move_number(game_board, key, direction, update_grid, move_by_distance):
-        move(key, direction, game_board)
+# Question 14
+# def keyboard_callback(event, game_frame, game_board):
+#     old_state = deepcopy(grid)
+#     move_all(game_board, event)
+#     new_state = deepcopy(grid)
+#
+#     if old_state != new_state:
+#         add_random_number(game_board)
 
 
+# Question 15
+def bind(game_frame, game_board):
+    map(lambda x: game_frame.bind(x, lambda event: keyboard_callback(event, game_frame, game_board)), controls)
+
+
+# Question 16
+def unbind(game_frame):
+    map(lambda x: game_frame.unbind(x), controls)
+
+
+# Question 18
+def merge(game_board, key):
+    grid_row, grid_column = gui.find_position(game_board, key)
+    for k, v in game_board.numbers.iteritems():
+        if k != key and v == (grid_row, grid_column):
+            game_board.numbers.pop(k)
+            num = grid[grid_row][grid_column]
+            number = gui.find_number(num)
+            gui.remove_number(game_board, k)
+            gui.remove_number(game_board, key)
+            game_board.score += number.value
+            gui.update_score(game_board)
+            return gui.put(game_board, key, number, grid_row, grid_column)
+    return False
+
+
+# Question 19
+def animate_movement(game_board, key, horizontal_distance, vertical_distance, direction=None):
+    """Animate the movement of a number from one slot to another"""
+
+    def helper_horizontal(transition, distance):
+        if distance < abs(transition):
+            gui.move_tile(game_board, key, transition, 0)
+            if merge(game_board, key):
+                return False
+            return True
+        else:
+            gui.move_tile(game_board, key, transition, 0)
+            return helper_horizontal(transition, distance - abs(transition))
+
+    def helper_vertical(transition, distance):
+        if distance < abs(transition):
+            gui.move_tile(game_board, key, 0, transition)
+            if merge(game_board, key):
+                return False
+            return True
+        else:
+            gui.move_tile(game_board, key, 0, transition)
+            return helper_vertical(transition, distance - abs(transition))
+
+    if direction == RIGHT:
+        return helper_horizontal(transition_value, horizontal_distance)
+    elif direction == DOWN:
+        return helper_vertical(transition_value, vertical_distance)
+    elif direction == LEFT:
+        return helper_horizontal(-1 * transition_value, horizontal_distance)
+    elif direction == UP:
+        return helper_vertical(-1 * transition_value, vertical_distance)
+    else:
+        return Exception("Invalid direction")
+
+
+# Question 20
 def is_game_over(game_board):
     result = True
     winner = False
@@ -235,13 +289,30 @@ def is_game_over(game_board):
         result = False
 
     if result:
-        game_board.game_over(winner)
+        gui.game_over(game_board, winner)
     return result
 
 
+# Question 21
+def keyboard_callback(event, game_frame, game_board):
+    unbind(game_frame)
+
+    old_state = deepcopy(grid)
+    move_all(game_board, event)
+    new_state = deepcopy(grid)
+
+    if old_state != new_state:
+        add_random_number(game_board)
+
+    if not is_game_over(game_board):
+        bind(game_frame, game_board)
+
 if __name__ == '__main__':
+    """Your Program will start here"""
+
     frame, board = gui.setup()
 
+    # Finishing setting up your GameBoard here, answer to Question 17 should go here
     add_random_number(board)
     add_random_number(board)
 

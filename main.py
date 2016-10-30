@@ -12,6 +12,13 @@ Group Member:
 # Give grid the appropriate value
 grid = None
 
+# Values to represent the directions the tiles could move
+UP = 1
+DOWN = 2
+RIGHT = 3
+LEFT = 4
+
+directions = {"Right": RIGHT, "Up": UP, "Left": LEFT, "Down": DOWN}
 
 # Used to store the available keyboard controls
 controls = ["<Right>", "<Left>", "<Up>", "<Down>"]
@@ -23,11 +30,12 @@ number_count = 0
 # this will increase the speed at which the tiles move and decreasing it will also cause the tiles to move slower
 transition_value = 20
 
+
 if __name__ == '__main__':
-    """Your Program will Start here"""
+    """Your Program will start here"""
 
     frame, board = gui.setup()
 
-    # Implement your code here
+    # Finishing setting up your GameBoard here, answer to Question 17 should go here
 
     gui.start(frame)

@@ -178,6 +178,15 @@ def put(game_board, key, number, row=0, column=0):
     return True
 
 
+def move_tile(game_board, key, horizontal, vertical):
+    game_board.canvas.move(key, horizontal, vertical)
+    game_board.canvas.update()
+
+
+def find_position(game_board, key):
+    return game_board.numbers[key]
+
+
 def remove_number(game_board, key):
     game_board.canvas.delete(key)
 
