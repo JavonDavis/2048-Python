@@ -21,13 +21,11 @@ DOWN = 2
 RIGHT = 3
 LEFT = 4
 
-directions = {"Right": RIGHT, "Up": UP, "Left": LEFT, "Down": DOWN}
+# Dictionary that might be useful
+helper = {"count": 0, "Right": RIGHT, "Up": UP, "Left": LEFT, "Down": DOWN}
 
 # Used to store the available keyboard controls
 controls = ["<Right>", "<Left>", "<Up>", "<Down>"]
-
-# use this variable to help keep track of the numbers on the board, remember each number needs a unique ID
-number_count = 0
 
 # used to help animate the movement from one tile to another, if functions are implemented correctly increasing
 # this will increase the speed at which the tiles move and decreasing it will also cause the tiles to move slower
@@ -51,12 +49,11 @@ def random_position():
 
 # Question #4
 def add_random_number(game_board):
-    global number_count
-    number_count += 1
+    helper['count'] += 1
     grid_row, grid_column = random_position()
     number = gui.random_number()
     grid[grid_row][grid_column] = number.value
-    gui.put(game_board, "Count {}".format(number_count), number, grid_row, grid_column)
+    gui.put(game_board, "Count {}".format(helper['count']), number, grid_row, grid_column)
     print grid
     return grid_row, grid_column
 
@@ -170,7 +167,7 @@ def move_all_left(game_board):
 
 # Question 13
 def move_all(game_board, event):
-    direction = directions[event.keysym]
+    direction = helper[event.keysym]
     if direction == UP:
         move_all_up(game_board)
     elif direction == DOWN:
@@ -259,8 +256,8 @@ def animate_movement(game_board, key, horizontal_distance, vertical_distance, di
 def is_game_over(game_board):
     result = True
     winner = False
-    for i in xrange(0,4):
-        for j in range(0,4):
+    for i in xrange(0, 4):
+        for j in range(0, 4):
             if grid[i][j] == 2048:
                 winner = True
                 break
@@ -270,19 +267,19 @@ def is_game_over(game_board):
             for j in range(0, 4):
                 num = grid[i][j]
                 if i > 0:
-                    if grid[i-1][j] == num:
+                    if grid[i - 1][j] == num:
                         result = False
                         break
                 if i < 3:
-                    if grid[i+1][j] == num:
+                    if grid[i + 1][j] == num:
                         result = False
                         break
                 if j > 0:
-                    if grid[i][j-1] == num:
+                    if grid[i][j - 1] == num:
                         result = False
                         break
                 if j < 3:
-                    if grid[i][j+1] == num:
+                    if grid[i][j + 1] == num:
                         result = False
                         break
     else:
@@ -306,6 +303,7 @@ def keyboard_callback(event, game_frame, game_board):
 
     if not is_game_over(game_board):
         bind(game_frame, game_board)
+
 
 if __name__ == '__main__':
     """Your Program will start here"""
