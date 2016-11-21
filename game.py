@@ -13,7 +13,10 @@ Group Member:
 """
 
 # Give grid the appropriate value
-grid = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+grid = [[0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]]
 
 # Values to represent the directions the tiles could move
 UP = 1
@@ -34,12 +37,7 @@ transition_value = 20
 
 # Question #2
 def empty_slots():
-    slots = []
-    for i in xrange(0, 4):
-        for j in xrange(0, 4):
-            if grid[i][j] == 0:
-                slots.append((i, j))
-    return slots
+    return [(i, j) for i in xrange(4) for j in xrange(4) if grid[i][j] == 0]  # Assume the grid will always be a 4x4
 
 
 # Question #3
@@ -50,12 +48,11 @@ def random_position():
 # Question #4
 def add_random_number(game_board):
     helper['count'] += 1
-    grid_row, grid_column = random_position()
+    row, column = random_position()
     number = gui.random_number()
-    grid[grid_row][grid_column] = number.value
-    gui.put(game_board, "Count {}".format(helper['count']), number, grid_row, grid_column)
-    print grid
-    return grid_row, grid_column
+    grid[row][column] = number.value
+    gui.put(game_board, "Count {}".format(helper['count']), number, row, column)
+    return row, column
 
 
 # Question 5
@@ -67,27 +64,27 @@ def find_identifier(game_board, grid_row, grid_column):
 
 
 # Question 6
-def update_grid(grid_row, grid_column, direction):
-    num1 = grid[grid_row][grid_column]
-    if direction == UP and grid_row > 0:
-        new_grid_row, new_grid_column = grid_row - 1, grid_column
-    elif direction == DOWN and grid_row < 3:
-        new_grid_row, new_grid_column = grid_row + 1, grid_column
-    elif direction == RIGHT and grid_column < 3:
-        new_grid_row, new_grid_column = grid_row, grid_column + 1
-    elif direction == LEFT and grid_column > 0:
-        new_grid_row, new_grid_column = grid_row, grid_column - 1
+def update_grid(row, column, direction):
+    num1 = grid[row][column]
+    if direction == UP and row > 0:
+        new_row, new_column = row - 1, column
+    elif direction == DOWN and row < 3:
+        new_row, new_column = row + 1, column
+    elif direction == RIGHT and column < 3:
+        new_row, new_column = row, column + 1
+    elif direction == LEFT and column > 0:
+        new_row, new_column = row, column - 1
     else:
-        return grid_row, grid_column
-    if grid[new_grid_row][new_grid_column] == 0:
-        grid[new_grid_row][new_grid_column] = num1
-        grid[grid_row][grid_column] = 0
-        return new_grid_row, new_grid_column
-    elif grid[new_grid_row][new_grid_column] == grid[grid_row][grid_column]:
-        grid[new_grid_row][new_grid_column] = num1 * 2
-        grid[grid_row][grid_column] = 0
-        return new_grid_row, new_grid_column
-    return grid_row, grid_column
+        return row, column
+    if grid[new_row][new_column] == 0:
+        grid[new_row][new_column] = num1
+        grid[row][column] = 0
+        return new_row, new_column
+    elif grid[new_row][new_column] == grid[row][column]:
+        grid[new_row][new_column] = num1 * 2
+        grid[row][column] = 0
+        return new_row, new_column
+    return row, column
 
 
 # Question 7 - does not include merge in answer
@@ -95,20 +92,20 @@ def update_grid(grid_row, grid_column, direction):
 #     """Animate the movement of a number from one slot to another"""
 #
 #     def helper_horizontal(transition, distance):
-#         if distance < abs(transition):
-#             gui.move_tile(game_board, key, transition, 0)
+#         if distance < transition_value:
+#             gui.move_tile(game_board, key, distance * transition_value/transition, 0)
 #             return True
 #         else:
 #             gui.move_tile(game_board, key, transition, 0)
-#             return helper_horizontal(transition, distance - abs(transition))
+#             return helper_horizontal(transition, distance - transition_value)
 #
 #     def helper_vertical(transition, distance):
-#         if distance < abs(transition):
-#             gui.move_tile(game_board, key, 0, transition)
+#         if distance < transition_value:
+#             gui.move_tile(game_board, key, 0, distance * transition_value/transition)
 #             return True
 #         else:
 #             gui.move_tile(game_board, key, 0, transition)
-#             return helper_vertical(transition, distance - abs(transition))
+#             return helper_vertical(transition, distance - transition_value)
 #
 #     if direction == RIGHT:
 #         return helper_horizontal(transition_value, horizontal_distance)
@@ -220,25 +217,27 @@ def merge(game_board, key):
 def animate_movement(game_board, key, horizontal_distance, vertical_distance, direction=None):
     """Animate the movement of a number from one slot to another"""
 
+    # Handles moving tiles horizontally
     def helper_horizontal(transition, distance):
-        if distance < abs(transition):
-            gui.move_tile(game_board, key, transition, 0)
+        if distance < transition_value:
+            gui.move_tile(game_board, key, distance * transition_value / transition, 0)
             if merge(game_board, key):
                 return False
             return True
         else:
             gui.move_tile(game_board, key, transition, 0)
-            return helper_horizontal(transition, distance - abs(transition))
+            return helper_horizontal(transition, distance - transition_value)
 
+    # Handles moving tiles vertically
     def helper_vertical(transition, distance):
-        if distance < abs(transition):
-            gui.move_tile(game_board, key, 0, transition)
+        if distance < transition_value:
+            gui.move_tile(game_board, key, 0, distance * transition_value / transition)
             if merge(game_board, key):
                 return False
             return True
         else:
             gui.move_tile(game_board, key, 0, transition)
-            return helper_vertical(transition, distance - abs(transition))
+            return helper_vertical(transition, distance - transition_value)
 
     if direction == RIGHT:
         return helper_horizontal(transition_value, horizontal_distance)
@@ -257,14 +256,14 @@ def is_game_over(game_board):
     result = True
     winner = False
     for i in xrange(0, 4):
-        for j in range(0, 4):
+        for j in xrange(0, 4):
             if grid[i][j] == 2048:
                 winner = True
                 break
 
     if not empty_slots():
         for i in xrange(0, 4):
-            for j in range(0, 4):
+            for j in xrange(0, 4):
                 num = grid[i][j]
                 if i > 0:
                     if grid[i - 1][j] == num:
