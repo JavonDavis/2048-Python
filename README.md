@@ -8,5 +8,6 @@ Decided to make this and then use it as an assignment for the students I tutor a
 It isn't perfect but it was enough to test their knowledge based on the concepts from the curriculum and also gave them a cool project they might want to show off to their friends while introducing them to a few python functions and libraries
 they might not have seen in class like deepcopy and the random library. 
 
-Just run the game.py to start my solution for the game. The main.py and the img folder is what they got to start with along with the PDF file with instructions.
+Just run the solution.py to start my solution for the game. The main.py and the img folder is what they got to start with along with the PDF file with instructions.
 
+Time came around to grade them so I wrote a script to help speed up the process, there's also a student's solution sample.py in the repo, grade_assignment.py(More info on how to use in a few, I'm still working on it)
