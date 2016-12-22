@@ -55,6 +55,15 @@ def add_random_number(game_board):
     return row, column
 
 
+# Helper function for testing
+def add_random_number_at(game_board, row, column):
+    helper['count'] += 1
+    number = gui.random_number()
+    grid[row][column] = number.value
+    gui.put(game_board, "Count {}".format(helper['count']), number, row, column)
+    return row, column
+
+
 # Question 5
 def find_identifier(game_board, grid_row, grid_column):
     for key, value in game_board.numbers.iteritems():
@@ -121,7 +130,6 @@ def update_grid(row, column, direction):
 
 # Question 8
 def move(game_board, key, direction):
-    print grid
     if gui.move_number(game_board, key, direction, update_grid, animate_movement):
         move(game_board, key, direction)
 
@@ -173,8 +181,6 @@ def move_all(game_board, event):
         move_all_right(game_board)
     elif direction == LEFT:
         move_all_left(game_board)
-    else:
-        return Exception("Invalid direction")
 
 
 # Question 14
@@ -247,8 +253,6 @@ def animate_movement(game_board, key, horizontal_distance, vertical_distance, di
         return helper_horizontal(-1 * transition_value, horizontal_distance)
     elif direction == UP:
         return helper_vertical(-1 * transition_value, vertical_distance)
-    else:
-        return Exception("Invalid direction")
 
 
 # Question 20
